@@ -1,17 +1,30 @@
+import pandas as pd  # data processing, CSV file I/O (e.g. pd.read_csv)
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn import preprocessing
 
-# x = torch.randn(100, 1)  # feature
-x_raw = torch.rand(10, 1)  # feature
-# print(torch.mean(x_raw))
-x = x_raw - torch.mean(x_raw)
-y = 0.6 * x_raw + 5  # output
-# print(x)
-# print(y)
 
-# plt.plot(x, y)
-# plt.show()
+raw_data = pd.read_csv("./chocolate_bars.csv")
+# print(raw_data.shape)  # (2530, 11)
+# print(raw_data.head().T)
+# print(raw_data.isnull().sum())  # 87 null num_ingredients & ingredients
+
+cleaned_data = raw_data.dropna()  # cleaned
+# print(cleaned_data.shape)
+# print(cleaned_data.isnull().sum())
+
+raw_x = torch.tensor(raw_data['cocoa_percent'].values, dtype=torch.float)
+mean_x = torch.mean(raw_x)
+std_x = torch.std(raw_x)
+norm_x = (raw_x - mean_x)/std_x  # mean normalization
+x = norm_x.reshape(-1, 1)  # input
+
+raw_y = torch.tensor(raw_data['rating'].values, dtype=torch.float)
+# mean_y = torch.mean(raw_y)
+# std_y = torch.std(raw_y)
+# norm_y = (raw_y - mean_y)/std_y
+y = raw_y.reshape(-1, 1)  # true output
 
 
 class LinearRegression(torch.nn.Module):
@@ -35,7 +48,6 @@ criterion = torch.nn.MSELoss()  # Mean Squared Error
 optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 
 loss_array = []
-param_array = []
 w_array = []
 
 for epoch in range(10000):
@@ -58,11 +70,17 @@ for epoch in range(10000):
 
 plt.yscale("log")
 plt.plot(loss_array)
+plt.title("LOSS")
 plt.show()
 
 plt.plot(w_array)
+plt.title("WEIGHT")
 plt.show()
 
-plt.plot(x, y, 'b')
-plt.plot(x, model(x).detach().numpy(), 'go')
+plt.plot(x, y, 'bo', label="actual")
+plt.plot(x, model(x).detach().numpy(), 'rx', label="predicted")
+plt.title("TRUE vs. PRED")
+plt.xlabel("cocoa percentage")
+plt.ylabel("rating")
+plt.legend()
 plt.show()
