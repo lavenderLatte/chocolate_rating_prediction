@@ -10,10 +10,6 @@ raw_data = pd.read_csv("./chocolate_bars.csv")
 # print(raw_data.head().T)
 # print(raw_data.isnull().sum())  # 87 null num_ingredients & ingredients
 
-cleaned_data = raw_data.dropna()  # cleaned
-# print(cleaned_data.shape)
-# print(cleaned_data.isnull().sum())
-
 raw_x = torch.tensor(raw_data['cocoa_percent'].values, dtype=torch.float)
 mean_x = torch.mean(raw_x)
 std_x = torch.std(raw_x)
@@ -50,7 +46,7 @@ optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 loss_array = []
 w_array = []
 
-for epoch in range(10000):
+for epoch in range(1000):
     # forward pass
     pred_y = model(x)
     loss = criterion(pred_y, y)
@@ -70,11 +66,9 @@ for epoch in range(10000):
 
 plt.yscale("log")
 plt.plot(loss_array)
+plt.xlabel("epoch")
+plt.ylabel("loss")
 plt.title("LOSS")
-plt.show()
-
-plt.plot(w_array)
-plt.title("WEIGHT")
 plt.show()
 
 plt.plot(x, y, 'bo', label="actual")
