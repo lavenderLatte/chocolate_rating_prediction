@@ -4,24 +4,28 @@ import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import preprocessing
 from text_to_onehotvect import onehotEncode, onehotEncode_fortest
+from data_handling import get_splited_dataset
 
-raw_data = pd.read_csv("./chocolate_bars.csv")
-cleaned_data = raw_data.dropna()  # cleaned
-# print(cleaned_data.shape)
-# print(cleaned_data.isnull().sum())
-# print(len(cleaned_data))
+dataset = "./chocolate_bars.csv"
+train, dev, test = get_splited_dataset(dataset)
 
+# TODO:refactor this repetitive part later
+# < training data set >
 coco_pct_raw = torch.tensor(
-    cleaned_data['cocoa_percent'].values, dtype=torch.float)
+    train['cocoa_percent'].values, dtype=torch.float)
 coco_pct_mean = torch.mean(coco_pct_raw)
 coco_pct_std = torch.std(coco_pct_raw)
 coco_pct_norm = (coco_pct_raw - coco_pct_mean) / \
     coco_pct_std  # mean normalization
 coco_pct = coco_pct_norm.reshape(-1, 1)  # input
 
+raw_data = pd.read_csv(dataset)
+cleaned_data = raw_data.dropna()
 
 ingredients = cleaned_data['ingredients']
-ing_raw_data, num_ing, ing_dict = onehotEncode(ingredients)
+_, num_ing, ing_dict = onehotEncode(ingredients)
+ingredients = train['ingredients']
+ing_raw_data, _, _ = onehotEncode(ingredients, ing_dict)
 ing_raw = torch.tensor(ing_raw_data, dtype=torch.float)
 ing_mean = torch.mean(ing_raw)
 ing_std = torch.std(ing_raw)
@@ -29,7 +33,9 @@ ing = (ing_raw - ing_mean)/ing_std
 # print("shape: ", x_mean.shape, x_std.shape)
 
 borigin = cleaned_data['bean_origin']
-borigin_raw_data, num_borigin, borigin_dict = onehotEncode(borigin)
+_, num_borigin, borigin_dict = onehotEncode(borigin)
+borigin = train['bean_origin']
+borigin_raw_data, _, _ = onehotEncode(borigin, borigin_dict)
 borigin_raw = torch.tensor(borigin_raw_data, dtype=torch.float)
 borigin_mean = torch.mean(borigin_raw)
 borigin_std = torch.std(borigin_raw)
@@ -37,11 +43,53 @@ borigin = (borigin_raw - borigin_mean)/borigin_std
 # print("num_borigin: ", num_borigin)
 # print("borigin: ", borigin)
 
-
 x = torch.cat([ing, coco_pct, borigin], dim=1)  # 7 ingredients + coco%
-
-raw_y = torch.tensor(cleaned_data['rating'].values, dtype=torch.float)
+raw_y = torch.tensor(train['rating'].values, dtype=torch.float)
 y = raw_y.reshape(-1, 1)  # true output
+
+# < dev data set >
+coco_pct_raw_dev = torch.tensor(
+    dev['cocoa_percent'].values, dtype=torch.float)
+coco_pct_norm_dev = (coco_pct_raw_dev - coco_pct_mean) / \
+    coco_pct_std  # mean normalization
+coco_pct_dev = coco_pct_norm_dev.reshape(-1, 1)  # input
+
+ingredients_dev = dev['ingredients']
+ing_raw_data_dev, _, _ = onehotEncode(ingredients_dev, ing_dict)
+ing_raw_dev = torch.tensor(ing_raw_data_dev, dtype=torch.float)
+ing_dev = (ing_raw_dev - ing_mean)/ing_std
+
+borigin_dev = dev['bean_origin']
+borigin_raw_data_dev, _, _ = onehotEncode(borigin_dev, borigin_dict)
+borigin_raw_dev = torch.tensor(borigin_raw_data_dev, dtype=torch.float)
+borigin_dev = (borigin_raw_dev - borigin_mean)/borigin_std
+
+x_dev = torch.cat([ing_dev, coco_pct_dev, borigin_dev],
+                  dim=1)  # 7 ingredients + coco%
+raw_y_dev = torch.tensor(dev['rating'].values, dtype=torch.float)
+y_dev = raw_y_dev.reshape(-1, 1)  # true output
+
+# < teset data set >
+coco_pct_raw_test = torch.tensor(
+    test['cocoa_percent'].values, dtype=torch.float)
+coco_pct_norm_test = (coco_pct_raw_test - coco_pct_mean) / \
+    coco_pct_std  # mean normalization
+coco_pct_test = coco_pct_norm_test.reshape(-1, 1)  # input
+
+ingredients_test = test['ingredients']
+ing_raw_data_test, _, _ = onehotEncode(ingredients_test, ing_dict)
+ing_raw_test = torch.tensor(ing_raw_data_test, dtype=torch.float)
+ing_test = (ing_raw_test - ing_mean)/ing_std
+
+borigin_test = test['bean_origin']
+borigin_raw_data_test, _, _ = onehotEncode(borigin_test, borigin_dict)
+borigin_raw_test = torch.tensor(borigin_raw_data_test, dtype=torch.float)
+borigin_test = (borigin_raw_test - borigin_mean)/borigin_std
+
+x_test = torch.cat([ing_test, coco_pct_test, borigin_test],
+                   dim=1)  # 7 ingredients + coco%
+raw_y_test = torch.tensor(test['rating'].values, dtype=torch.float)
+y_test = raw_y_test.reshape(-1, 1)  # true output
 
 
 class NeuralNetwork(torch.nn.Module):
@@ -73,30 +121,67 @@ class NeuralNetwork(torch.nn.Module):
 model = NeuralNetwork()
 criterion = torch.nn.MSELoss()  # Mean Squared Error
 # Stochastic Gradient Descent, learning rate = 0.01
-optimizer = torch.optim.SGD(model.parameters(), lr=0.005)
+# optimizer = torch.optim.SGD(model.parameters(), lr=0.005)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+
+
+def get_accuracy(pred_y, y):
+    sq_error = (y - pred_y)**2
+    mse = torch.sum(sq_error)/len(pred_y)  # mean squared error
+    return mse
+
 
 loss_array = []
+accuracy_train_array = []
+accuracy_dev_array = []
 for epoch in range(2000):
     # forward pass
     pred_y = model(x)
+    pred_y_dev = model(x_dev)
     loss = criterion(pred_y, y)
+    pred_np = pred_y.detach().numpy()
+    pred_np_dev = pred_y_dev.detach().numpy()
+    accuracy_train = get_accuracy(pred_np, y)
+    accuracy_dev = get_accuracy(pred_np_dev, y_dev)
 
     optimizer.zero_grad()  # wipe out prev gradient
     loss.backward()
     optimizer.step()  # update params w & b
 
-    if epoch % 1000 == 0:
-        print('epoch {}, loss {}'.format(epoch, loss.item()))
+    if epoch % 100 == 0:
+        print('epoch {}, loss {}, training acccuracy {}, dev accuracy {}'.format(
+            epoch, loss.item(), accuracy_train, accuracy_dev))
     loss_array.append(loss.item())
+    accuracy_train_array.append(accuracy_train)
+    accuracy_dev_array.append(accuracy_dev)
 
+
+plt.subplot(3, 1, 1)
 plt.yscale("log")
 plt.plot(loss_array)
 plt.xlabel("epoch")
 plt.ylabel("loss")
 plt.title("LOSS")
+plt.subplot(3, 1, 2)
+plt.yscale("log")
+plt.plot(accuracy_train_array)
+plt.xlabel("epoch")
+plt.ylabel("training acccuracy")
+plt.title("ACCURACY - TRAIN")
+plt.subplot(3, 1, 3)
+plt.yscale("log")
+plt.plot(accuracy_dev_array)
+plt.xlabel("epoch")
+plt.ylabel("dev acccuracy")
+plt.title("ACCURACY - DEV")
 plt.show()
 
+
 y_pred = model(x).detach().numpy()
+pred_y_test = model(x_test).detach().numpy()
+
+accuracy_test = get_accuracy(pred_y_test, y_test)
+print('test accuracy {}'.format(accuracy_test))
 
 for i in range(10):
     # for y_t, y_pred_t in zip(y, y_pred):
@@ -128,11 +213,11 @@ def create_test_vect(test_ing_list, test_cocoa_pct, test_borigin):
         [(test_cocoa_pct-coco_pct_mean)/coco_pct_std])
     test_borigin_onehot = (test_borigin_onehot-borigin_mean)/borigin_std
 
-    print("shapes: ", test_ing_onehot.shape,
-          test_cocoa_pct.shape, test_borigin_onehot.shape)
+    # print("shapes: ", test_ing_onehot.shape,
+    #       test_cocoa_pct.shape, test_borigin_onehot.shape)
     test_vect = torch.cat(
         [test_ing_onehot, test_cocoa_pct, test_borigin_onehot])
-    print("shapes: ", test_vect)
+    # print("shapes: ", test_vect)
 
     return test_vect
 
