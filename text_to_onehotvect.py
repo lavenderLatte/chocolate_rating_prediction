@@ -1,22 +1,23 @@
 import numpy as np
 
 
-def onehotEncode(input_col):
-    inset = set()
-    for instr in input_col:
-        inlist = instr.split(",")
-        for item in inlist:
-            inset.add(item.strip())
-    # print("inset: ", inset)
+def onehotEncode(input_col, indict=None):
+    if (indict == None):
+        inset = set()
+        for instr in input_col:
+            inlist = instr.split(",")
+            for item in inlist:
+                inset.add(item.strip())
+        # print("inset: ", inset)
 
-    indict = {}
-    for idx, item in enumerate(sorted(inset)):
-        # print(idx, ing)
-        indict[item] = idx
-    # print("indict: ", indict)  # ingredient to number mapping
+        indict = {}
+        for idx, item in enumerate(sorted(inset)):
+            # print(idx, ing)
+            indict[item] = idx
+        # print("indict: ", indict)  # ingredient to number mapping
 
     num_rows = len(input_col)
-    num_category = len(inset)
+    num_category = len(indict)
     in_raw_data = np.zeros((num_rows, num_category), dtype=float)
 
     for row_num, instr in enumerate(input_col):
@@ -30,7 +31,7 @@ def onehotEncode(input_col):
 
 
 def onehotEncode_fortest(categories, indict):
-    print("indict: ", indict)
+    # print("indict: ", indict)
     test_vect = np.zeros(len(indict))
 
     for catetory in categories:
