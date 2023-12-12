@@ -40,13 +40,15 @@ class LinearRegression(torch.nn.Module):
 
 model = LinearRegression()
 criterion = torch.nn.MSELoss()  # Mean Squared Error
-# Stochastic Gradient Descent, learning rate = 0.01
-optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+# Stochastic Gradient Descent, learning rate = 0.01, 0.005
+optimizer = torch.optim.SGD(model.parameters(), lr=0.005)
+# Adaptive Moment Estimation, learning rate = 0.01, 0.005
+# optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
 
 loss_array = []
 w_array = []
 
-for epoch in range(1000):
+for epoch in range(2000):
     # forward pass
     pred_y = model(x)
     loss = criterion(pred_y, y)
@@ -60,7 +62,7 @@ for epoch in range(1000):
             continue
         w_array.append(params[1].item())
 
-    if epoch % 1000 == 0:
+    if epoch % 100 == 0:
         print('epoch {}, loss {}'.format(epoch, loss.item()))
     loss_array.append(loss.item())
 
