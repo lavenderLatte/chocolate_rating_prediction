@@ -48,7 +48,7 @@ optimizer = torch.optim.SGD(model.parameters(), lr=0.005)
 loss_array = []
 w_array = []
 
-for epoch in range(2000):
+for epoch in range(1000):
     # forward pass
     pred_y = model(x)
     loss = criterion(pred_y, y)
