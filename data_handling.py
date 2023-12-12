@@ -8,13 +8,16 @@ from text_to_onehotvect import onehotEncode, onehotEncode_fortest
 
 def get_splited_dataset(data):
     raw_data = pd.read_csv(data)
-    cleaned_data = raw_data.dropna()  # cleaned
-
-    """plan
-    1. identify # rows
-    2. split into training (70%), development (20%), and tests (10%) sets
-    3. how to extract rows at random/ or shuffle the data and divide
-    """
+    removed_null = raw_data.dropna()
+    dropped_id = removed_null.drop("id", axis=1)
+    cleaned_data = dropped_id
+    # print(raw_data.info())
+    # print(cleaned_data.head().T)
+    # print(cleaned_data.info())
+    # print(cleaned_data.describe().T)
+    # print(f"cocoa_percent : {cleaned_data['cocoa_percent'].value_counts()}")
+    # cleaned_data.hist(layout=(5, 4), figsize=(20, 15), bins=20)
+    # plt.show()
 
     num_row = cleaned_data.shape[0]
     num_row_train = int(num_row * 0.7)
@@ -26,9 +29,15 @@ def get_splited_dataset(data):
     dev = shuffled_data[num_row_train: num_row_train+num_row_dev]
     test = shuffled_data[num_row_train+num_row_dev:]
 
-    # print(f"num_row: {num_row}, num_row_train: {num_row_train}, num_row_dev: {num_row_dev}, num_row_test: {num_row_test}")
+    # print(
+    #     f"num_row: {num_row}, num_row_train: {num_row_train}, num_row_dev: {num_row_dev}, num_row_test: {num_row_test}")
     # print(
     #     f"len shuffled_data: {len(shuffled_data)},  train: {len(train)}, dev: {len(dev)}, test: {len(test)}")
+
+    # print(train['rating'].value_counts())
+    # print(dev['rating'].value_counts())
+    # print(test['rating'].value_counts())
+
     return train, dev, test
 
 
@@ -50,3 +59,11 @@ def get_splited_dataset(data):
 #     ing_mean = torch.mean(ing_raw)
 #     ing_std = torch.std(ing_raw)
 #     ing = (ing_raw - ing_mean)/ing_std
+
+
+# def main():
+#     get_splited_dataset("./chocolate_bars.csv")
+
+
+# if __name__ == "__main__":
+#     main()
