@@ -21,22 +21,25 @@ class PolynomialRegression(torch.nn.Module):
     def __init__(self):
         super(PolynomialRegression, self).__init__()
         self.polynom = torch.nn.Linear(
-            3, 1, bias=True)  # 2 inputs: w1x1 + w2(x1^2) + b
+            2, 1, bias=True)  # 2 inputs: w1x1 + w2(x1^2) + b
 
     def forward(self, x):
         # contcat along dim=1
-        y_pred = self.polynom(torch.cat([x, torch.square(x), x**3], dim=1))
+        y_pred = self.polynom(torch.cat([x, torch.square(x)], dim=1))
+        # y_pred = self.polynom(
+        #     torch.cat([x, torch.square(x), x**3, x**4], dim=1)) # 4th degree polynomial
         return y_pred
 
 
 model = PolynomialRegression()
 criterion = torch.nn.MSELoss()  # Mean Squared Error
-optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
+optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+# optimizer = torch.optim.Adam(model.parameters(), lr=0.0001)
+
 
 loss_array = []
-# w_array = []
 
-for epoch in range(10000):
+for epoch in range(4000):
     # forward pass
     pred_y = model(x)
     loss = criterion(pred_y, y)
@@ -45,12 +48,7 @@ for epoch in range(10000):
     loss.backward()
     optimizer.step()  # update params w & b
 
-    # for params in model.named_parameters():
-    #     if params[0] != "linear.weight":
-    #         continue
-    #     w_array.append(params[1].item())
-
-    if epoch % 1000 == 0:
+    if epoch % 100 == 0:
         print('epoch {}, loss {}'.format(epoch, loss.item()))
     loss_array.append(loss.item())
 
@@ -60,10 +58,6 @@ plt.xlabel("epoch")
 plt.ylabel("loss")
 plt.title("LOSS")
 plt.show()
-
-# plt.plot(w_array)
-# plt.title("WEIGHT")
-# plt.show()
 
 plt.plot(x, y, 'bo', label="actual")
 plt.plot(x, model(x).detach().numpy(), 'rx', label="predicted")
