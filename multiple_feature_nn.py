@@ -121,8 +121,8 @@ class NeuralNetwork(torch.nn.Module):
 model = NeuralNetwork()
 criterion = torch.nn.MSELoss()  # Mean Squared Error
 # Stochastic Gradient Descent, learning rate = 0.01
-# optimizer = torch.optim.SGD(model.parameters(), lr=0.005)
-optimizer = torch.optim.Adam(model.parameters(), lr=0.005)
+# optimizer = torch.optim.SGD(model.parameters(), lr=0.001)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.01)
 
 
 def get_accuracy(pred_y, y):
@@ -134,26 +134,33 @@ def get_accuracy(pred_y, y):
 loss_array = []
 accuracy_train_array = []
 accuracy_dev_array = []
-for epoch in range(2000):
+accuracy_test_array = []
+for epoch in range(1000):
     # forward pass
     pred_y = model(x)
     pred_y_dev = model(x_dev)
+    pred_y_test = model(x_test)
     loss = criterion(pred_y, y)
+
     pred_np = pred_y.detach().numpy()
     pred_np_dev = pred_y_dev.detach().numpy()
+    pred_np_test = pred_y_test.detach().numpy()
+
     accuracy_train = get_accuracy(pred_np, y)
     accuracy_dev = get_accuracy(pred_np_dev, y_dev)
+    accuracy_test = get_accuracy(pred_np_test, y_test)
 
     optimizer.zero_grad()  # wipe out prev gradient
     loss.backward()
     optimizer.step()  # update params w & b
 
     if epoch % 100 == 0:
-        print('epoch {}, loss {}, training acccuracy {}, dev accuracy {}'.format(
-            epoch, loss.item(), accuracy_train, accuracy_dev))
+        print('epoch {}, loss {}, training acccuracy {}, test accuracy {}'.format(
+            epoch, loss.item(), accuracy_train, accuracy_test))
     loss_array.append(loss.item())
     accuracy_train_array.append(accuracy_train)
     accuracy_dev_array.append(accuracy_dev)
+    accuracy_test_array.append(accuracy_test)
 
 
 plt.subplot(3, 1, 1)
@@ -162,18 +169,22 @@ plt.plot(loss_array)
 plt.xlabel("epoch")
 plt.ylabel("loss")
 plt.title("LOSS")
+
 plt.subplot(3, 1, 2)
 plt.yscale("log")
 plt.plot(accuracy_train_array)
 plt.xlabel("epoch")
 plt.ylabel("training acccuracy")
 plt.title("ACCURACY - TRAIN")
+
 plt.subplot(3, 1, 3)
 plt.yscale("log")
-plt.plot(accuracy_dev_array)
+plt.plot(accuracy_test_array)
 plt.xlabel("epoch")
-plt.ylabel("dev acccuracy")
-plt.title("ACCURACY - DEV")
+plt.ylabel("test acccuracy")
+plt.title("ACCURACY - TEST")
+
+plt.subplots_adjust(hspace=0.5)
 plt.show()
 
 
@@ -183,9 +194,9 @@ pred_y_test = model(x_test).detach().numpy()
 accuracy_test = get_accuracy(pred_y_test, y_test)
 print('test accuracy {}'.format(accuracy_test))
 
-for i in range(10):
-    # for y_t, y_pred_t in zip(y, y_pred):
-    print(y[i], y_pred[i])
+# for i in range(10):
+#     # for y_t, y_pred_t in zip(y, y_pred):
+#     print(y[i], y_pred[i])
 
 # plt.plot(x, y, 'bo', label="actual")
 # plt.plot(x, model(x).detach().numpy(), 'rx', label="predicted")
@@ -231,7 +242,8 @@ test_vecs.append(create_test_vect(["B", "S"], 77, ["Blend"]))
 test_vecs = torch.stack(test_vecs)
 # test_vecs = torch.tensor(test_vecs)
 y_test = model(test_vecs)
-print(y_test)
+
+print(f"y_test:\n {y_test}")
 
 
 # ing_test_raw = [[1, 0, 0, 0, 0, 0, 0],  # beans - highly valued ingredient
